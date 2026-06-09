@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "dev": "nodemon index.js",
-  "start": "node index.js"
-},
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -23,6 +23,7 @@
     "morgan": "^1.11.0",
     "multer": "^2.1.1",
     "mysql2": "^3.22.5",
+    "openai": "^6.42.0",
     "socket.io": "^4.8.3",
     "uuid": "^14.0.0"
   },

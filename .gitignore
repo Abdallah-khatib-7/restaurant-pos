@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment variables — NEVER commit these
+.env
+backend/.env
+frontend/.env
+
+# Build output
+frontend/dist/
+frontend/build/
+
+# OS clutter
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+*.log
+
+# MySQL dumps (if you ever export locally)
+*.sql.gz

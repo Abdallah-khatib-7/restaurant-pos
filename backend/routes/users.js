@@ -25,7 +25,7 @@ router.post('/', auth, async (req, res) => {
     return res.status(403).json({ message: 'Access denied' });
   }
 
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, car_type, car_color, plate_number, id_number, driver_license } = req.body;
   try {
     const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
     if (existing.length > 0) {
@@ -34,8 +34,8 @@ router.post('/', auth, async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
     const [result] = await db.query(
-      'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-      [name, email, hashed, role]
+      'INSERT INTO users (name, email, password, role, car_type, car_color, plate_number, id_number, driver_license) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, email, hashed, role, car_type || null, car_color || null, plate_number || null, id_number || null, driver_license || null]
     );
     res.status(201).json({ message: 'User created', id: result.insertId });
   } catch (err) {

@@ -2,10 +2,9 @@
 node_modules/
 */node_modules/
 
-# Environment variables — NEVER commit these
+# Environment variables
 .env
-backend/.env
-frontend/.env
+**/.env
 
 # Build output
 frontend/dist/
@@ -19,5 +18,5 @@ Thumbs.db
 .vscode/settings.json
 *.log
 
-# MySQL dumps (if you ever export locally)
+# MySQL dumps
 *.sql.gz

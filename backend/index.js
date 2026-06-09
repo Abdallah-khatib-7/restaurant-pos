@@ -50,6 +50,8 @@ app.use('/api/menu', require('./routes/menu'));
 app.use('/api/tables', require('./routes/tables'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/delivery', require('./routes/delivery'));
+app.use('/api/reports', require('./routes/reports'));
 
 // Test route
 app.get('/', (req, res) => {

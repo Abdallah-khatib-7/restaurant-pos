@@ -1,0 +1,96 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap");
+
+
+@import "tailwindcss";
+
+@theme {
+  --color-amber: #f59e0b;
+  --color-amber-light: #fbbf24;
+  --color-amber-dim: rgba(245, 158, 11, 0.15);
+  --color-charcoal: #1c1917;
+  --color-surface: #292524;
+  --color-surface-raised: #3c3430;
+  --color-border: #44403c;
+  --color-burgundy: #9f1239;
+  --color-cream: #fef3c7;
+  --color-muted: #a8a29e;
+
+  --font-display: "Playfair Display", serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #1c1917;
+  color: #fef3c7;
+  font-family: "Inter", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(41, 37, 36, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+              0 0 0 1px rgba(245, 158, 11, 0.05);
+}
+
+/* Amber heat glow — signature element */
+.heat-glow {
+  background:
+    radial-gradient(ellipse at bottom left, rgba(245, 158, 11, 0.12) 0%, transparent 60%),
+    #292524;
+}
+
+.heat-glow-strong {
+  background:
+    radial-gradient(ellipse at bottom left, rgba(245, 158, 11, 0.2) 0%, transparent 50%),
+    #292524;
+}
+
+/* Amber glow shadow on cards */
+.amber-shadow {
+  box-shadow: 0 4px 24px rgba(245, 158, 11, 0.15),
+              0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.amber-shadow-lg {
+  box-shadow: 0 8px 40px rgba(245, 158, 11, 0.25),
+              0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #1c1917; }
+::-webkit-scrollbar-thumb { background: #44403c; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+
+/* Smooth page transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Number font */
+.font-mono {
+  font-family: "JetBrains Mono", monospace;
+}
+
+.font-display {
+  font-family: "Playfair Display", serif;
+}

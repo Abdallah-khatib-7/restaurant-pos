@@ -4,7 +4,7 @@ const db = require('../database');
 const auth = require('../middleware/auth');
 
 // Get all categories for the restaurant
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, async (req, res, next) => {
   try {
     const [rows] = await db.query(
       'SELECT * FROM categories WHERE restaurant_id = ? ORDER BY display_order',
@@ -12,12 +12,12 @@ router.get('/', auth, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Add category (owner only)
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -30,12 +30,12 @@ router.post('/', auth, async (req, res) => {
     );
     res.status(201).json({ message: 'Category created', id: result.insertId });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Update category (owner only)
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -48,12 +48,12 @@ router.put('/:id', auth, async (req, res) => {
     );
     res.json({ message: 'Category updated' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Delete category (owner only)
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -65,7 +65,7 @@ router.delete('/:id', auth, async (req, res) => {
     );
     res.json({ message: 'Category deleted' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 

@@ -5,6 +5,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 require('dotenv').config();
+const { apiLimiter, loginLimiter, applicationLimiter } = require('./middleware/rateLimiter');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 const server = http.createServer(app);
@@ -20,6 +22,12 @@ app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL }));
 app.use(morgan('dev'));
 app.use(express.json());
+
+// Rate limiting
+app.use('/api/', apiLimiter);
+app.use('/api/auth/login', loginLimiter);
+app.use('/api/superadmin/login', loginLimiter);
+app.use('/api/applications', applicationLimiter);
 
 // Make io accessible in routes
 app.set('io', io);
@@ -60,6 +68,9 @@ app.use('/api/applications', require('./routes/applications'));
 app.get('/', (req, res) => {
   res.json({ message: 'Restaurant POS API is running' });
 });
+
+// Error handler — must be last
+app.use(errorHandler);
 
 // Start server
 const PORT = process.env.PORT || 5000;

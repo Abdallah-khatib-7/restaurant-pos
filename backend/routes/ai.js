@@ -64,7 +64,7 @@ RULES:
     res.json({ suggestions });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'AI error', error: err.message });
+    next(err);
   }
 });
 

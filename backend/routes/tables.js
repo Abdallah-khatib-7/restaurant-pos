@@ -4,7 +4,7 @@ const db = require('../database');
 const auth = require('../middleware/auth');
 
 // Get all tables for the restaurant
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, async (req, res, next) => {
   try {
     const [rows] = await db.query(
       'SELECT * FROM tables WHERE restaurant_id = ? ORDER BY number',
@@ -12,12 +12,12 @@ router.get('/', auth, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Add table (owner only)
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -30,12 +30,12 @@ router.post('/', auth, async (req, res) => {
     );
     res.status(201).json({ message: 'Table created', id: result.insertId });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Update table status
-router.put('/:id/status', auth, async (req, res) => {
+router.put('/:id/status', auth, async (req, res, next) => {
   const { status } = req.body;
   try {
     await db.query(
@@ -44,12 +44,12 @@ router.put('/:id/status', auth, async (req, res) => {
     );
     res.json({ message: 'Table status updated' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Delete table (owner only)
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -61,7 +61,7 @@ router.delete('/:id', auth, async (req, res) => {
     );
     res.json({ message: 'Table deleted' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 

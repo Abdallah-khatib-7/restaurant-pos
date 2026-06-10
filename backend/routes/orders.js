@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const auth = require('../middleware/auth');
+const { body } = require('express-validator');
+const validate = require('../middleware/validate');
 const getIo = (req) => req.app.get('io');
 
 // Get all orders for the restaurant
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, async (req, res, next) => {
   try {
     const [rows] = await db.query(`
       SELECT o.*, t.number as table_number, u.name as waiter_name
@@ -17,12 +19,12 @@ router.get('/', auth, async (req, res) => {
     `, [req.user.restaurant_id]);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Get single order with items
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', auth, async (req, res, next) => {
   try {
     const [orders] = await db.query(`
       SELECT o.*, t.number as table_number, u.name as waiter_name
@@ -45,12 +47,12 @@ router.get('/:id', auth, async (req, res) => {
 
     res.json({ ...orders[0], items });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Get active orders for kitchen
-router.get('/kitchen/active', auth, async (req, res) => {
+router.get('/kitchen/active', auth, async (req, res, next) => {
   try {
     const [orders] = await db.query(`
       SELECT o.*, t.number as table_number, u.name as waiter_name
@@ -73,12 +75,21 @@ router.get('/kitchen/active', auth, async (req, res) => {
 
     res.json(orders);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Create order
-router.post('/', auth, async (req, res) => {
+router.post('/',
+  auth,
+  [
+    body('table_id').notEmpty().withMessage('Table is required'),
+    body('items').isArray({ min: 1 }).withMessage('Order must have at least one item'),
+    body('items.*.menu_item_id').notEmpty().withMessage('Each item must have a menu_item_id'),
+    body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1')
+  ],
+  validate,
+  async (req, res, next) => {
   const { table_id, items, notes } = req.body;
   const waiter_id = req.user.id;
   const restaurant_id = req.user.restaurant_id;
@@ -136,12 +147,12 @@ router.post('/', auth, async (req, res) => {
 
     res.status(201).json({ message: 'Order created', id: order_id, total });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Update order status
-router.put('/:id/status', auth, async (req, res) => {
+router.put('/:id/status', auth, async (req, res, next) => {
   const { status } = req.body;
   try {
     const io = getIo(req);
@@ -164,12 +175,12 @@ router.put('/:id/status', auth, async (req, res) => {
 
     res.json({ message: 'Order status updated' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Update order item status
-router.put('/:orderId/items/:itemId/status', auth, async (req, res) => {
+router.put('/:orderId/items/:itemId/status', auth, async (req, res, next) => {
   const { status } = req.body;
   try {
     await db.query(
@@ -178,7 +189,7 @@ router.put('/:orderId/items/:itemId/status', auth, async (req, res) => {
     );
     res.json({ message: 'Item status updated' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 

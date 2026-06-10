@@ -4,7 +4,7 @@ const db = require('../database');
 const auth = require('../middleware/auth');
 
 // Get all menu items for the restaurant
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, async (req, res, next) => {
   try {
     const [rows] = await db.query(`
       SELECT m.*, c.name AS category_name 
@@ -15,12 +15,12 @@ router.get('/', auth, async (req, res) => {
     `, [req.user.restaurant_id]);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Get menu items by category
-router.get('/category/:categoryId', auth, async (req, res) => {
+router.get('/category/:categoryId', auth, async (req, res, next) => {
   try {
     const [rows] = await db.query(
       'SELECT * FROM menu_items WHERE category_id = ? AND restaurant_id = ? AND is_available = TRUE',
@@ -28,12 +28,12 @@ router.get('/category/:categoryId', auth, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Add menu item (owner only)
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -46,12 +46,12 @@ router.post('/', auth, async (req, res) => {
     );
     res.status(201).json({ message: 'Menu item created', id: result.insertId });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Update menu item (owner only)
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -64,12 +64,12 @@ router.put('/:id', auth, async (req, res) => {
     );
     res.json({ message: 'Menu item updated' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Delete menu item (owner only)
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -81,7 +81,7 @@ router.delete('/:id', auth, async (req, res) => {
     );
     res.json({ message: 'Menu item deleted' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 

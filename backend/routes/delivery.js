@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const getIo = (req) => req.app.get('io');
 
 // Get all delivery orders (owner sees all, driver sees his own)
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, async (req, res, next) => {
   try {
     let query = `
       SELECT d.*, u.name as driver_name, u.car_type, u.car_color, u.plate_number
@@ -41,12 +41,12 @@ router.get('/', auth, async (req, res) => {
 
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Get all delivery drivers for this restaurant
-router.get('/drivers', auth, async (req, res) => {
+router.get('/drivers', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -57,12 +57,12 @@ router.get('/drivers', auth, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Create delivery order (owner only)
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -105,12 +105,12 @@ router.post('/', auth, async (req, res) => {
 
     res.status(201).json({ message: 'Delivery order created', id: delivery_order_id, food_total, delivery_fee, total });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Assign driver (owner only)
-router.put('/:id/assign', auth, async (req, res) => {
+router.put('/:id/assign', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -122,12 +122,12 @@ router.put('/:id/assign', auth, async (req, res) => {
     );
     res.json({ message: 'Driver assigned' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Update delivery status (driver or owner)
-router.put('/:id/status', auth, async (req, res) => {
+router.put('/:id/status', auth, async (req, res, next) => {
   const { status } = req.body;
   try {
     let extra = '';
@@ -146,7 +146,7 @@ router.put('/:id/status', auth, async (req, res) => {
 
     res.json({ message: 'Status updated' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 

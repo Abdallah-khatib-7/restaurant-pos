@@ -3,9 +3,10 @@ const router = express.Router();
 const db = require('../database');
 const auth = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
-
+const { body } = require('express-validator');
+const validate = require('../middleware/validate');
 // Get all users for the restaurant (owner only)
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -16,12 +17,21 @@ router.get('/', auth, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Create user (owner only)
-router.post('/', auth, async (req, res) => {
+router.post('/',
+  auth,
+  [
+    body('name').notEmpty().withMessage('Name is required'),
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('role').isIn(['owner', 'waiter', 'kitchen', 'delivery']).withMessage('Invalid role')
+  ],
+  validate,
+  async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -40,12 +50,19 @@ router.post('/', auth, async (req, res) => {
     );
     res.status(201).json({ message: 'User created', id: result.insertId });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Change own password ← before /:id routes
-router.put('/change-password', auth, async (req, res) => {
+router.put('/change-password',
+  auth,
+  [
+    body('current_password').notEmpty().withMessage('Current password is required'),
+    body('new_password').isLength({ min: 6 }).withMessage('New password must be at least 6 characters')
+  ],
+  validate,
+  async (req, res, next) => {
   const { current_password, new_password } = req.body;
 
   try {
@@ -71,12 +88,12 @@ router.put('/change-password', auth, async (req, res) => {
 
     res.json({ message: 'Password changed successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Update user
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -89,12 +106,12 @@ router.put('/:id', auth, async (req, res) => {
     );
     res.json({ message: 'User updated' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Delete user (owner only)
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -105,7 +122,7 @@ router.delete('/:id', auth, async (req, res) => {
     );
     res.json({ message: 'User deleted' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 

@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // Super admin login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req, res, next) => {
   const { email, password } = req.body;
   try {
     const [rows] = await db.query('SELECT * FROM super_admins WHERE email = ?', [email]);
@@ -30,24 +30,24 @@ router.post('/login', async (req, res) => {
       user: { id: admin.id, name: admin.name, email: admin.email, role: 'superadmin' }
     });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Get all applications
-router.get('/applications', async (req, res) => {
+router.get('/applications', async (req, res, next) => {
   try {
     const [rows] = await db.query(
       'SELECT * FROM restaurant_applications ORDER BY applied_at DESC'
     );
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Get single application
-router.get('/applications/:id', async (req, res) => {
+router.get('/applications/:id', async (req, res, next) => {
   try {
     const [rows] = await db.query(
       'SELECT * FROM restaurant_applications WHERE id = ?',
@@ -58,12 +58,12 @@ router.get('/applications/:id', async (req, res) => {
     }
     res.json(rows[0]);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Approve application — creates restaurant + owner account
-router.post('/applications/:id/approve', async (req, res) => {
+router.post('/applications/:id/approve', async (req, res, next) => {
   try {
     const [apps] = await db.query(
       'SELECT * FROM restaurant_applications WHERE id = ?',
@@ -119,12 +119,12 @@ router.post('/applications/:id/approve', async (req, res) => {
       temp_password: tempPassword
     });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Reject application
-router.post('/applications/:id/reject', async (req, res) => {
+router.post('/applications/:id/reject', async (req, res, next) => {
   const { reason } = req.body;
   try {
     await db.query(
@@ -133,24 +133,24 @@ router.post('/applications/:id/reject', async (req, res) => {
     );
     res.json({ message: 'Application rejected' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Get all restaurants
-router.get('/restaurants', async (req, res) => {
+router.get('/restaurants', async (req, res, next) => {
   try {
     const [rows] = await db.query(
       'SELECT * FROM restaurants ORDER BY created_at DESC'
     );
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Toggle restaurant active/inactive
-router.put('/restaurants/:id/toggle', async (req, res) => {
+router.put('/restaurants/:id/toggle', async (req, res, next) => {
   try {
     await db.query(
       'UPDATE restaurants SET is_active = NOT is_active WHERE id = ?',
@@ -158,12 +158,12 @@ router.put('/restaurants/:id/toggle', async (req, res) => {
     );
     res.json({ message: 'Restaurant status toggled' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Mark payment as received
-router.put('/restaurants/:id/payment', async (req, res) => {
+router.put('/restaurants/:id/payment', async (req, res, next) => {
   const { payment_method } = req.body;
   try {
     await db.query(
@@ -172,7 +172,7 @@ router.put('/restaurants/:id/payment', async (req, res) => {
     );
     res.json({ message: 'Payment marked as received' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 

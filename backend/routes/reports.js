@@ -4,7 +4,7 @@ const db = require('../database');
 const auth = require('../middleware/auth');
 
 // Dashboard summary — today's stats
-router.get('/summary', auth, async (req, res) => {
+router.get('/summary', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -46,12 +46,12 @@ router.get('/summary', auth, async (req, res) => {
       active_deliveries: parseInt(activeDeliveries[0].count)
     });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Best selling items
-router.get('/best-sellers', auth, async (req, res) => {
+router.get('/best-sellers', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -68,12 +68,12 @@ router.get('/best-sellers', auth, async (req, res) => {
     `, [req.user.restaurant_id]);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Revenue by day (last 7 days)
-router.get('/weekly', auth, async (req, res) => {
+router.get('/weekly', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -98,12 +98,12 @@ router.get('/weekly', auth, async (req, res) => {
 
     res.json({ dine_in: dineIn, delivery });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 
 // Revenue by category
-router.get('/by-category', auth, async (req, res) => {
+router.get('/by-category', auth, async (req, res, next) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -120,7 +120,7 @@ router.get('/by-category', auth, async (req, res) => {
     `, [req.user.restaurant_id]);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 

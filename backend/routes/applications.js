@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { body } = require('express-validator');
+const validate = require('../middleware/validate');
+const { sendNewApplicationEmail } = require('../utils/mailer');
 
 // Calculate pricing tier based on total employees
 const getPricingTier = (total_employees) => {
@@ -11,7 +14,28 @@ const getPricingTier = (total_employees) => {
 };
 
 // Submit restaurant application (public route — no auth needed)
-router.post('/', async (req, res) => {
+router.post('/',
+  [
+    body('owner_name').notEmpty().withMessage('Owner name is required'),
+    body('owner_email').isEmail().withMessage('Valid email is required'),
+    body('owner_phone').notEmpty().withMessage('Owner phone is required'),
+    body('owner_national_id').notEmpty().withMessage('National ID is required'),
+    body('restaurant_name').notEmpty().withMessage('Restaurant name is required'),
+    body('restaurant_type').notEmpty().withMessage('Restaurant type is required'),
+    body('cuisine_type').notEmpty().withMessage('Cuisine type is required'),
+    body('address').notEmpty().withMessage('Address is required'),
+    body('city').notEmpty().withMessage('City is required'),
+    body('phone').notEmpty().withMessage('Phone is required'),
+    body('seating_capacity').isInt({ min: 1 }).withMessage('Seating capacity must be a number'),
+    body('num_tables').isInt({ min: 1 }).withMessage('Number of tables must be a number'),
+    body('opening_time').notEmpty().withMessage('Opening time is required'),
+    body('closing_time').notEmpty().withMessage('Closing time is required'),
+    body('days_open').notEmpty().withMessage('Days open is required'),
+    body('num_waiters').isInt({ min: 0 }).withMessage('Number of waiters must be a number'),
+    body('num_kitchen').isInt({ min: 1 }).withMessage('At least 1 kitchen staff required')
+  ],
+  validate,
+  async (req, res, next) => {
   const {
     owner_name, owner_email, owner_phone, owner_national_id,
     restaurant_name, branch_name, restaurant_type, cuisine_type,
@@ -58,6 +82,25 @@ router.post('/', async (req, res) => {
         tier, price
       ]
     );
+          
+      // Send email notification to super admin
+try {
+  await sendNewApplicationEmail({
+    owner_name, owner_email, owner_phone,
+    restaurant_name, branch_name, restaurant_type,
+    address, city, phone,
+    seating_capacity, num_tables,
+    has_delivery, has_shisha, has_outdoor_seating,
+    num_owners: num_owners || 1, num_waiters, num_kitchen, num_delivery: num_delivery || 0,
+    total_employees,
+    pricing_tier: tier,
+    quoted_price: price
+  });
+} catch (emailErr) {
+  console.error('Email failed:', emailErr.message);
+  // Don't fail the request if email fails
+}
+
 
     res.status(201).json({
       message: 'Application submitted successfully. We will contact you within 24 hours.',
@@ -65,7 +108,7 @@ router.post('/', async (req, res) => {
       quoted_price: price
     });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 });
 

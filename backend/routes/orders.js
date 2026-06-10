@@ -4,7 +4,7 @@ const db = require('../database');
 const auth = require('../middleware/auth');
 const getIo = (req) => req.app.get('io');
 
-// Get all orders
+// Get all orders for the restaurant
 router.get('/', auth, async (req, res) => {
   try {
     const [rows] = await db.query(`
@@ -12,8 +12,9 @@ router.get('/', auth, async (req, res) => {
       FROM orders o
       JOIN tables t ON o.table_id = t.id
       JOIN users u ON o.waiter_id = u.id
+      WHERE o.restaurant_id = ?
       ORDER BY o.created_at DESC
-    `);
+    `, [req.user.restaurant_id]);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -28,8 +29,8 @@ router.get('/:id', auth, async (req, res) => {
       FROM orders o
       JOIN tables t ON o.table_id = t.id
       JOIN users u ON o.waiter_id = u.id
-      WHERE o.id = ?
-    `, [req.params.id]);
+      WHERE o.id = ? AND o.restaurant_id = ?
+    `, [req.params.id, req.user.restaurant_id]);
 
     if (orders.length === 0) {
       return res.status(404).json({ message: 'Order not found' });
@@ -48,7 +49,7 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// Get active orders (for kitchen)
+// Get active orders for kitchen
 router.get('/kitchen/active', auth, async (req, res) => {
   try {
     const [orders] = await db.query(`
@@ -56,9 +57,9 @@ router.get('/kitchen/active', auth, async (req, res) => {
       FROM orders o
       JOIN tables t ON o.table_id = t.id
       JOIN users u ON o.waiter_id = u.id
-      WHERE o.status IN ('pending', 'preparing')
+      WHERE o.restaurant_id = ? AND o.status IN ('pending', 'preparing')
       ORDER BY o.created_at ASC
-    `);
+    `, [req.user.restaurant_id]);
 
     for (let order of orders) {
       const [items] = await db.query(`
@@ -80,52 +81,59 @@ router.get('/kitchen/active', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   const { table_id, items, notes } = req.body;
   const waiter_id = req.user.id;
+  const restaurant_id = req.user.restaurant_id;
 
   try {
-    // Calculate total
     let total = 0;
     for (let item of items) {
-      const [rows] = await db.query('SELECT price FROM menu_items WHERE id = ?', [item.menu_item_id]);
+      const [rows] = await db.query(
+        'SELECT price FROM menu_items WHERE id = ? AND restaurant_id = ?',
+        [item.menu_item_id, restaurant_id]
+      );
       total += rows[0].price * item.quantity;
     }
 
-    // Create order
     const [result] = await db.query(
-      'INSERT INTO orders (table_id, waiter_id, total, notes) VALUES (?, ?, ?, ?)',
-      [table_id, waiter_id, total, notes || null]
+      'INSERT INTO orders (restaurant_id, table_id, waiter_id, total, notes) VALUES (?, ?, ?, ?, ?)',
+      [restaurant_id, table_id, waiter_id, total, notes || null]
     );
 
     const order_id = result.insertId;
 
-    // Insert order items
     for (let item of items) {
-      const [rows] = await db.query('SELECT price FROM menu_items WHERE id = ?', [item.menu_item_id]);
+      const [rows] = await db.query(
+        'SELECT price FROM menu_items WHERE id = ?',
+        [item.menu_item_id]
+      );
       await db.query(
         'INSERT INTO order_items (order_id, menu_item_id, quantity, price, notes) VALUES (?, ?, ?, ?, ?)',
         [order_id, item.menu_item_id, item.quantity, rows[0].price, item.notes || null]
       );
     }
 
-    // Mark table as occupied
-    await db.query('UPDATE tables SET status = ? WHERE id = ?', ['occupied', table_id]);
-       // Emit to kitchen in real-time
-const io = getIo(req);
-const [newOrder] = await db.query(`
-  SELECT o.*, t.number as table_number, u.name as waiter_name
-  FROM orders o
-  JOIN tables t ON o.table_id = t.id
-  JOIN users u ON o.waiter_id = u.id
-  WHERE o.id = ?
-`, [order_id]);
+    await db.query(
+      'UPDATE tables SET status = ? WHERE id = ? AND restaurant_id = ?',
+      ['occupied', table_id, restaurant_id]
+    );
 
-const [newItems] = await db.query(`
-  SELECT oi.*, m.name as item_name
-  FROM order_items oi
-  JOIN menu_items m ON oi.menu_item_id = m.id
-  WHERE oi.order_id = ?
-`, [order_id]);
+    const io = getIo(req);
+    const [newOrder] = await db.query(`
+      SELECT o.*, t.number as table_number, u.name as waiter_name
+      FROM orders o
+      JOIN tables t ON o.table_id = t.id
+      JOIN users u ON o.waiter_id = u.id
+      WHERE o.id = ?
+    `, [order_id]);
 
-io.to('kitchen').emit('new_order', { ...newOrder[0], items: newItems });
+    const [newItems] = await db.query(`
+      SELECT oi.*, m.name as item_name
+      FROM order_items oi
+      JOIN menu_items m ON oi.menu_item_id = m.id
+      WHERE oi.order_id = ?
+    `, [order_id]);
+
+    io.to(`kitchen_${restaurant_id}`).emit('new_order', { ...newOrder[0], items: newItems });
+
     res.status(201).json({ message: 'Order created', id: order_id, total });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -137,26 +145,37 @@ router.put('/:id/status', auth, async (req, res) => {
   const { status } = req.body;
   try {
     const io = getIo(req);
-    await db.query('UPDATE orders SET status = ? WHERE id = ?', [status, req.params.id]);
+    await db.query(
+      'UPDATE orders SET status = ? WHERE id = ? AND restaurant_id = ?',
+      [status, req.params.id, req.user.restaurant_id]
+    );
 
-    // If served or cancelled, free the table
     if (status === 'served' || status === 'cancelled') {
       const [orders] = await db.query('SELECT table_id FROM orders WHERE id = ?', [req.params.id]);
-      await db.query('UPDATE tables SET status = ? WHERE id = ?', ['free', orders[0].table_id]);
+      await db.query(
+        'UPDATE tables SET status = ? WHERE id = ? AND restaurant_id = ?',
+        ['free', orders[0].table_id, req.user.restaurant_id]
+      );
     }
-      io.to('kitchen').emit('order_status_changed', { id: parseInt(req.params.id), status });
+
+    io.to(`kitchen_${req.user.restaurant_id}`).emit('order_status_changed', {
+      id: parseInt(req.params.id), status
+    });
+
     res.json({ message: 'Order status updated' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// Update order item status (kitchen marks items ready)
+// Update order item status
 router.put('/:orderId/items/:itemId/status', auth, async (req, res) => {
   const { status } = req.body;
   try {
-    await db.query('UPDATE order_items SET status = ? WHERE id = ? AND order_id = ?',
-      [status, req.params.itemId, req.params.orderId]);
+    await db.query(
+      'UPDATE order_items SET status = ? WHERE id = ? AND order_id = ?',
+      [status, req.params.itemId, req.params.orderId]
+    );
     res.json({ message: 'Item status updated' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });

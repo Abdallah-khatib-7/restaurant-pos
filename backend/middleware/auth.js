@@ -16,3 +16,19 @@ module.exports = (req, res, next) => {
     return res.status(401).json({ message: 'Invalid token' });
   }
 };
+
+// Middleware to allow superadmin only
+module.exports.superAdminOnly = (req, res, next) => {
+  if (req.user.role !== 'superadmin') {
+    return res.status(403).json({ message: 'Super admin access only' });
+  }
+  next();
+};
+
+// Middleware to allow restaurant staff only (not superadmin)
+module.exports.restaurantOnly = (req, res, next) => {
+  if (req.user.role === 'superadmin') {
+    return res.status(403).json({ message: 'Not allowed for super admin' });
+  }
+  next();
+};

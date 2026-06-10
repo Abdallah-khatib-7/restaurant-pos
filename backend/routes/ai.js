@@ -8,19 +8,18 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 router.post('/suggest', auth, async (req, res) => {
   const { current_order } = req.body;
-  // current_order = array of { menu_item_id, name, quantity, price, category }
+  const restaurant_id = req.user.restaurant_id;
 
   try {
-    // Fetch full menu with categories
+    // Fetch this restaurant's menu only
     const [menu] = await db.query(`
       SELECT m.id, m.name, m.description, m.price, c.name as category
       FROM menu_items m
       JOIN categories c ON m.category_id = c.id
-      WHERE m.is_available = TRUE
+      WHERE m.restaurant_id = ? AND m.is_available = TRUE
       ORDER BY c.display_order, m.name
-    `);
+    `, [restaurant_id]);
 
-    // Calculate current order total
     const current_total = current_order.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     const menuText = menu.map(item =>

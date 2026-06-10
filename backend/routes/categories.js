@@ -3,10 +3,13 @@ const router = express.Router();
 const db = require('../database');
 const auth = require('../middleware/auth');
 
-// Get all categories
-router.get('/', async (req, res) => {
+// Get all categories for the restaurant
+router.get('/', auth, async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM categories ORDER BY display_order');
+    const [rows] = await db.query(
+      'SELECT * FROM categories WHERE restaurant_id = ? ORDER BY display_order',
+      [req.user.restaurant_id]
+    );
     res.json(rows);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -22,8 +25,8 @@ router.post('/', auth, async (req, res) => {
   const { name, display_order } = req.body;
   try {
     const [result] = await db.query(
-      'INSERT INTO categories (name, display_order) VALUES (?, ?)',
-      [name, display_order || 0]
+      'INSERT INTO categories (restaurant_id, name, display_order) VALUES (?, ?, ?)',
+      [req.user.restaurant_id, name, display_order || 0]
     );
     res.status(201).json({ message: 'Category created', id: result.insertId });
   } catch (err) {
@@ -40,8 +43,8 @@ router.put('/:id', auth, async (req, res) => {
   const { name, display_order } = req.body;
   try {
     await db.query(
-      'UPDATE categories SET name = ?, display_order = ? WHERE id = ?',
-      [name, display_order, req.params.id]
+      'UPDATE categories SET name = ?, display_order = ? WHERE id = ? AND restaurant_id = ?',
+      [name, display_order, req.params.id, req.user.restaurant_id]
     );
     res.json({ message: 'Category updated' });
   } catch (err) {
@@ -56,7 +59,10 @@ router.delete('/:id', auth, async (req, res) => {
   }
 
   try {
-    await db.query('DELETE FROM categories WHERE id = ?', [req.params.id]);
+    await db.query(
+      'DELETE FROM categories WHERE id = ? AND restaurant_id = ?',
+      [req.params.id, req.user.restaurant_id]
+    );
     res.json({ message: 'Category deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });

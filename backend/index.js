@@ -28,14 +28,14 @@ app.set('io', io);
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 
-  socket.on('join_kitchen', () => {
-    socket.join('kitchen');
-    console.log('Kitchen screen connected');
+  socket.on('join_kitchen', (restaurant_id) => {
+    socket.join(`kitchen_${restaurant_id}`);
+    console.log(`Kitchen connected for restaurant ${restaurant_id}`);
   });
 
-  socket.on('join_waiter', (waiterId) => {
-    socket.join(`waiter_${waiterId}`);
-    console.log(`Waiter ${waiterId} connected`);
+  socket.on('join_waiter', (data) => {
+    socket.join(`waiter_${data.restaurant_id}_${data.waiterId}`);
+    console.log(`Waiter connected for restaurant ${data.restaurant_id}`);
   });
 
   socket.on('disconnect', () => {
@@ -53,6 +53,8 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/delivery', require('./routes/delivery'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/superadmin', require('./routes/superadmin'));
+app.use('/api/applications', require('./routes/applications'));
 
 // Test route
 app.get('/', (req, res) => {

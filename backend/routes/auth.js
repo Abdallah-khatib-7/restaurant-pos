@@ -4,53 +4,65 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../database');
 
-// Register
-router.post('/register', async (req, res) => {
-  const { name, email, password, role } = req.body;
-
-  try {
-    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
-    if (existing.length > 0) {
-      return res.status(400).json({ message: 'Email already exists' });
-    }
-
-    const hashed = await bcrypt.hash(password, 10);
-    const [result] = await db.query(
-      'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-      [name, email, hashed, role]
-    );
-
-    res.status(201).json({ message: 'User created', id: result.insertId });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-});
-
-// Login
+// Single login for everyone — redirects based on role
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (rows.length === 0) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+    // Check super admin first
+    const [superAdmins] = await db.query('SELECT * FROM super_admins WHERE email = ?', [email]);
+    if (superAdmins.length > 0) {
+      const admin = superAdmins[0];
+      const match = await bcrypt.compare(password, admin.password);
+      if (!match) return res.status(400).json({ message: 'Invalid credentials' });
+
+      const token = jwt.sign(
+        { id: admin.id, name: admin.name, role: 'superadmin' },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN }
+      );
+
+      return res.json({
+        token,
+        user: { id: admin.id, name: admin.name, email: admin.email, role: 'superadmin' }
+      });
     }
 
-    const user = rows[0];
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+    // Check restaurant staff
+    const [users] = await db.query(`
+      SELECT u.*, r.is_active, r.restaurant_name
+      FROM users u
+      JOIN restaurants r ON u.restaurant_id = r.id
+      WHERE u.email = ?
+    `, [email]);
+
+    if (users.length === 0) return res.status(400).json({ message: 'Invalid credentials' });
+
+    const user = users[0];
+
+    if (!user.is_active) {
+      return res.status(403).json({ message: 'Restaurant is inactive. Contact support.' });
     }
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign(
-      { id: user.id, name: user.name, role: user.role },
+      { id: user.id, name: user.name, role: user.role, restaurant_id: user.restaurant_id },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role }
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        restaurant_id: user.restaurant_id,
+        restaurant_name: user.restaurant_name
+      }
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });

@@ -105,8 +105,8 @@ router.post('/',
     }
 
     const [result] = await db.query(
-      'INSERT INTO orders (restaurant_id, table_id, waiter_id, total, notes) VALUES (?, ?, ?, ?, ?)',
-      [restaurant_id, table_id, waiter_id, total, notes || null]
+      'INSERT INTO orders (restaurant_id, table_id, waiter_id, total, final_total, notes) VALUES (?, ?, ?, ?, ?, ?)',
+[restaurant_id, table_id, waiter_id, total, total, notes || null]
     );
 
     const order_id = result.insertId;
@@ -192,5 +192,50 @@ router.put('/:orderId/items/:itemId/status', auth, async (req, res, next) => {
     next(err);
   }
 });
+// Apply discount (owner only)
+router.put('/:id/discount', auth, async (req, res, next) => {
+  if (req.user.role !== 'owner') {
+    return res.status(403).json({ message: 'Access denied' });
+  }
 
+  const { discount_percent } = req.body;
+
+  if (discount_percent < 0 || discount_percent > 100) {
+    return res.status(400).json({ message: 'Discount must be between 0 and 100' });
+  }
+
+  try {
+    const [orders] = await db.query(
+      'SELECT * FROM orders WHERE id = ? AND restaurant_id = ?',
+      [req.params.id, req.user.restaurant_id]
+    );
+
+    if (orders.length === 0) return res.status(404).json({ message: 'Order not found' });
+
+    const order = orders[0];
+    const discount_amount = (parseFloat(order.total) * discount_percent) / 100;
+    const final_total = parseFloat(order.total) - discount_amount;
+
+    await db.query(
+      'UPDATE orders SET discount_percent = ?, discount_amount = ?, final_total = ? WHERE id = ?',
+      [discount_percent, discount_amount.toFixed(2), final_total.toFixed(2), req.params.id]
+    );
+
+    const io = getIo(req);
+    io.to(`kitchen_${req.user.restaurant_id}`).emit('order_updated', {
+      id: parseInt(req.params.id),
+      discount_percent,
+      discount_amount: discount_amount.toFixed(2),
+      final_total: final_total.toFixed(2)
+    });
+
+    res.json({
+      message: 'Discount applied',
+      original_total: order.total,
+      discount_percent,
+      discount_amount: discount_amount.toFixed(2),
+      final_total: final_total.toFixed(2)
+    });
+  } catch (err) { next(err); }
+});
 module.exports = router;

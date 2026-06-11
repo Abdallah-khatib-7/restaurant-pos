@@ -6,6 +6,7 @@ import Landing from './pages/Landing';
 import SuperAdmin from './pages/SuperAdmin';
 import Dashboard from './pages/Dashboard';
 import MenuManagement from './pages/MenuManagement';
+import TablesManagement from './pages/TablesManagement.jsx';
 
 // Role-based route guard
 const ProtectedRoute = ({ children, roles }) => {
@@ -52,11 +53,8 @@ export default function App() {
       {/* Protected  */}
       <Route path="/menu" element={<ProtectedRoute roles={['owner']}><MenuManagement /></ProtectedRoute>} />
       { <Route path="/dashboard" element={<ProtectedRoute roles={['owner']}><Dashboard /></ProtectedRoute>} /> }
-      {/* <Route path="/waiter" element={<ProtectedRoute roles={['waiter']}><WaiterView /></ProtectedRoute>} /> */}
-      {/* <Route path="/kitchen" element={<ProtectedRoute roles={['kitchen']}><KitchenDisplay /></ProtectedRoute>} /> */}
-      {/* <Route path="/delivery" element={<ProtectedRoute roles={['delivery']}><DeliveryView /></ProtectedRoute>} /> */}
-      {/* <Route path="/superadmin" element={<ProtectedRoute roles={['superadmin']}><SuperAdmin /></ProtectedRoute>} /> */}
       <Route path="/superadmin" element={<ProtectedRoute roles={['superadmin']}><SuperAdmin /></ProtectedRoute>} />
+      <Route path="/tables" element={<ProtectedRoute roles={['owner']}><TablesManagement /></ProtectedRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

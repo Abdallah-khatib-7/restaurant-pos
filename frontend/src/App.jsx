@@ -7,6 +7,8 @@ import SuperAdmin from './pages/SuperAdmin';
 import Dashboard from './pages/Dashboard';
 import MenuManagement from './pages/MenuManagement';
 import TablesManagement from './pages/TablesManagement.jsx';
+import Orders from './pages/Orders.jsx';
+
 
 // Role-based route guard
 const ProtectedRoute = ({ children, roles }) => {
@@ -55,6 +57,7 @@ export default function App() {
       { <Route path="/dashboard" element={<ProtectedRoute roles={['owner']}><Dashboard /></ProtectedRoute>} /> }
       <Route path="/superadmin" element={<ProtectedRoute roles={['superadmin']}><SuperAdmin /></ProtectedRoute>} />
       <Route path="/tables" element={<ProtectedRoute roles={['owner']}><TablesManagement /></ProtectedRoute>} />
+      <Route path="/orders" element={<ProtectedRoute roles={['owner']}><Orders /></ProtectedRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

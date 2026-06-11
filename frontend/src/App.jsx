@@ -1,11 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import useAuth from './hooks/useAuth';
 
-// Pages (we'll create these one by one)
 import Login from './pages/Login';
 import Landing from './pages/Landing';
 import SuperAdmin from './pages/SuperAdmin';
 import Dashboard from './pages/Dashboard';
+import MenuManagement from './pages/MenuManagement';
 
 // Role-based route guard
 const ProtectedRoute = ({ children, roles }) => {
@@ -49,7 +49,8 @@ export default function App() {
       {/* Role redirect */}
       <Route path="/home" element={<RoleRedirect />} />
 
-      {/* Protected — coming soon */}
+      {/* Protected  */}
+      <Route path="/menu" element={<ProtectedRoute roles={['owner']}><MenuManagement /></ProtectedRoute>} />
       { <Route path="/dashboard" element={<ProtectedRoute roles={['owner']}><Dashboard /></ProtectedRoute>} /> }
       {/* <Route path="/waiter" element={<ProtectedRoute roles={['waiter']}><WaiterView /></ProtectedRoute>} /> */}
       {/* <Route path="/kitchen" element={<ProtectedRoute roles={['kitchen']}><KitchenDisplay /></ProtectedRoute>} /> */}

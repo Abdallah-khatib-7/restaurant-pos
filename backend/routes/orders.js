@@ -238,4 +238,111 @@ router.put('/:id/discount', auth, async (req, res, next) => {
     });
   } catch (err) { next(err); }
 });
+
+// Add tip to order
+router.put('/:id/tip', auth, async (req, res, next) => {
+  const { tip } = req.body;
+  try {
+    await db.query(
+      'UPDATE orders SET tip = ? WHERE id = ? AND restaurant_id = ?',
+      [tip, req.params.id, req.user.restaurant_id]
+    );
+    res.json({ message: 'Tip added' });
+  } catch (err) { next(err); }
+});
+
+// Request bill
+router.put('/:id/request-bill', auth, async (req, res, next) => {
+  try {
+    await db.query(
+      'UPDATE orders SET bill_requested = TRUE WHERE id = ? AND restaurant_id = ?',
+      [req.params.id, req.user.restaurant_id]
+    );
+
+    // Update table status to bill_requested
+    const [orders] = await db.query('SELECT table_id FROM orders WHERE id = ?', [req.params.id]);
+    await db.query(
+      'UPDATE tables SET status = ? WHERE id = ? AND restaurant_id = ?',
+      ['bill_requested', orders[0].table_id, req.user.restaurant_id]
+    );
+
+    const io = getIo(req);
+    io.to(`kitchen_${req.user.restaurant_id}`).emit('bill_requested', {
+      order_id: parseInt(req.params.id),
+      table_id: orders[0].table_id
+    });
+
+    res.json({ message: 'Bill requested' });
+  } catch (err) { next(err); }
+});
+
+// Add items to existing order
+router.post('/:id/items', auth, async (req, res, next) => {
+  const { items } = req.body;
+  try {
+    const [orders] = await db.query(
+      'SELECT * FROM orders WHERE id = ? AND restaurant_id = ?',
+      [req.params.id, req.user.restaurant_id]
+    );
+    if (orders.length === 0) return res.status(404).json({ message: 'Order not found' });
+
+    let additionalTotal = 0;
+    for (let item of items) {
+      const [menuItem] = await db.query('SELECT price FROM menu_items WHERE id = ?', [item.menu_item_id]);
+      const price = menuItem[0].price;
+      additionalTotal += parseFloat(price) * item.quantity;
+      await db.query(
+        'INSERT INTO order_items (order_id, menu_item_id, quantity, price, notes) VALUES (?, ?, ?, ?, ?)',
+        [req.params.id, item.menu_item_id, item.quantity, price, item.notes || null]
+      );
+    }
+
+    // Update order total
+    const newTotal = parseFloat(orders[0].total) + additionalTotal;
+    const newFinalTotal = parseFloat(orders[0].final_total || orders[0].total) + additionalTotal;
+    await db.query(
+      'UPDATE orders SET total = ?, final_total = ? WHERE id = ?',
+      [newTotal, newFinalTotal, req.params.id]
+    );
+
+    // Notify kitchen
+    const io = getIo(req);
+    io.to(`kitchen_${req.user.restaurant_id}`).emit('order_updated', {
+      id: parseInt(req.params.id)
+    });
+
+    res.json({ message: 'Items added', additional_total: additionalTotal });
+  } catch (err) { next(err); }
+});
+
+// Cancel individual item
+router.delete('/:orderId/items/:itemId', auth, async (req, res, next) => {
+  try {
+    const [items] = await db.query(
+      'SELECT * FROM order_items WHERE id = ? AND order_id = ?',
+      [req.params.itemId, req.params.orderId]
+    );
+    if (items.length === 0) return res.status(404).json({ message: 'Item not found' });
+
+    const item = items[0];
+    if (item.status !== 'pending') {
+      return res.status(400).json({ message: 'Cannot cancel item that is already being prepared' });
+    }
+
+    const itemTotal = parseFloat(item.price) * item.quantity;
+    await db.query('DELETE FROM order_items WHERE id = ?', [req.params.itemId]);
+
+    // Update order total
+    const [orders] = await db.query('SELECT * FROM orders WHERE id = ?', [req.params.orderId]);
+    const newTotal = Math.max(0, parseFloat(orders[0].total) - itemTotal);
+    const newFinalTotal = Math.max(0, parseFloat(orders[0].final_total || orders[0].total) - itemTotal);
+    await db.query(
+      'UPDATE orders SET total = ?, final_total = ? WHERE id = ?',
+      [newTotal, newFinalTotal, req.params.orderId]
+    );
+
+    res.json({ message: 'Item cancelled' });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

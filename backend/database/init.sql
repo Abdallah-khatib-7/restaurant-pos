@@ -176,6 +176,8 @@ CREATE TABLE orders (
   notes TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  tip DECIMAL(10,2) DEFAULT 0,
+  bill_requested BOOLEAN DEFAULT FALSE,
   FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
   FOREIGN KEY (table_id) REFERENCES tables(id),
   FOREIGN KEY (waiter_id) REFERENCES users(id)

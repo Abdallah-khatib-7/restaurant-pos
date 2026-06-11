@@ -11,6 +11,7 @@ import Orders from './pages/Orders.jsx';
 import Staff from './pages/Staff.jsx';  
 import Delivery from './pages/Delivery.jsx';
 import Reports from './pages/Reports.jsx';
+import WaiterView from './pages/WaiterView.jsx';
 
 
 // Role-based route guard
@@ -64,6 +65,7 @@ export default function App() {
       <Route path="/staff" element={<ProtectedRoute roles={['owner']}><Staff /></ProtectedRoute>} />
       <Route path="/delivery" element={<ProtectedRoute roles={['owner', 'delivery_operator']}><Delivery /></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute roles={['owner']}><Reports /></ProtectedRoute>} />
+      <Route path="/waiter" element={<ProtectedRoute roles={['waiter']}><WaiterView /></ProtectedRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

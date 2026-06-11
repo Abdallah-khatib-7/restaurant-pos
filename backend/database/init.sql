@@ -226,3 +226,26 @@ CREATE TABLE delivery_order_items (
   FOREIGN KEY (delivery_order_id) REFERENCES delivery_orders(id),
   FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
 );
+
+-- Work sessions (login/logout tracking)
+CREATE TABLE IF NOT EXISTS work_sessions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  restaurant_id INT NOT NULL,
+  login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  logout_at TIMESTAMP NULL,
+  duration_minutes INT DEFAULT 0,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Work schedules (owner sets expected hours)
+CREATE TABLE IF NOT EXISTS work_schedules (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  restaurant_id INT NOT NULL,
+  day_of_week ENUM('monday','tuesday','wednesday','thursday','friday','saturday','sunday') NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  UNIQUE KEY unique_schedule (user_id, day_of_week)
+);

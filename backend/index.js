@@ -32,24 +32,43 @@ app.use('/api/applications', applicationLimiter);
 // Make io accessible in routes
 app.set('io', io);
 
-// Socket.io events
+// Track online users in memory
+const onlineUsers = new Map();
+
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 
   socket.on('join_kitchen', (restaurant_id) => {
     socket.join(`kitchen_${restaurant_id}`);
-    console.log(`Kitchen connected for restaurant ${restaurant_id}`);
   });
 
   socket.on('join_waiter', (data) => {
     socket.join(`waiter_${data.restaurant_id}_${data.waiterId}`);
-    console.log(`Waiter connected for restaurant ${data.restaurant_id}`);
+  });
+
+  socket.on('user_online', (data) => {
+    onlineUsers.set(data.user_id, { ...data, socket_id: socket.id });
+    socket.join(`restaurant_${data.restaurant_id}`);
+    io.to(`restaurant_${data.restaurant_id}`).emit('online_users_updated',
+      Array.from(onlineUsers.values()).filter(u => u.restaurant_id === data.restaurant_id)
+    );
   });
 
   socket.on('disconnect', () => {
+    for (const [userId, userData] of onlineUsers.entries()) {
+      if (userData.socket_id === socket.id) {
+        onlineUsers.delete(userId);
+        io.to(`restaurant_${userData.restaurant_id}`).emit('online_users_updated',
+          Array.from(onlineUsers.values()).filter(u => u.restaurant_id === userData.restaurant_id)
+        );
+        break;
+      }
+    }
     console.log('Client disconnected:', socket.id);
   });
 });
+
+app.set('onlineUsers', onlineUsers);
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -63,10 +82,20 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/superadmin', require('./routes/superadmin'));
 app.use('/api/applications', require('./routes/applications'));
+app.use('/api/sessions', require('./routes/sessions'));
+app.use('/api/schedules', require('./routes/schedules'));
 
 // Test route
 app.get('/', (req, res) => {
   res.json({ message: 'Restaurant POS API is running' });
+});
+
+// Online users
+app.get('/api/online-users', (req, res) => {
+  const onlineUsers = req.app.get('onlineUsers');
+  const restaurantId = parseInt(req.query.restaurant_id);
+  const users = Array.from(onlineUsers.values()).filter(u => u.restaurant_id === restaurantId);
+  res.json(users);
 });
 
 // Error handler — must be last

@@ -60,7 +60,13 @@ router.post('/login',
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
-
+         // Log work session
+try {
+  await db.query(
+    'INSERT INTO work_sessions (user_id, restaurant_id) VALUES (?, ?)',
+    [user.id, user.restaurant_id]
+  );
+} catch (e) { /* don't fail login if session log fails */ }
       res.json({
         token,
         user: {

@@ -5,11 +5,14 @@ import { AuthProvider } from './context/AuthContext'
 import { Toaster } from 'react-hot-toast'
 import './index.css'
 import App from './App.jsx'
+import { SocketProvider } from './context/SocketContext.jsx';
  
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
+        <SocketProvider>
+        
         <App />
         <Toaster
           position="top-right"
@@ -28,6 +31,7 @@ createRoot(document.getElementById('root')).render(
             }
           }}
         />
+        </SocketProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>

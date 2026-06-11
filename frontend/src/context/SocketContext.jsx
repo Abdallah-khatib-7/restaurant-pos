@@ -8,6 +8,7 @@ export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
   const socketRef = useRef(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [socketReady, setSocketReady] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -19,7 +20,8 @@ export const SocketProvider = ({ children }) => {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      // Tell server this user is online
+      setSocketReady(true);
+
       socket.emit('user_online', {
         user_id: user.id,
         restaurant_id: user.restaurant_id,
@@ -27,7 +29,6 @@ export const SocketProvider = ({ children }) => {
         role: user.role,
       });
 
-      // Join relevant rooms
       if (user.role === 'kitchen') {
         socket.emit('join_kitchen', user.restaurant_id);
       }
@@ -42,11 +43,12 @@ export const SocketProvider = ({ children }) => {
 
     return () => {
       socket.disconnect();
+      setSocketReady(false);
     };
   }, [user]);
 
   return (
-    <SocketContext.Provider value={{ socketRef, onlineUsers }}>
+    <SocketContext.Provider value={{ socketRef, onlineUsers, socketReady }}>
       {children}
     </SocketContext.Provider>
   );

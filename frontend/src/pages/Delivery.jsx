@@ -8,7 +8,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { FloatingNav, BottomNav } from './Dashboard';
-
+import { useSocket } from '../context/SocketContext';
 const statusConfig = {
   pending: { color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', label: 'Pending' },
   preparing: { color: '#a78bfa', bg: 'rgba(167,139,250,0.15)', label: 'Preparing' },
@@ -52,6 +52,23 @@ export default function Delivery() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeCategory, setActiveCategory] = useState(null);
   const [orderItems, setOrderItems] = useState([]);
+  
+   
+
+const { socketRef, socketReady } = useSocket();
+
+useEffect(() => {
+  if (!socketRef.current) return;
+  const socket = socketRef.current;
+  socket.on('delivery_updated', fetchAll);
+  socket.on('new_delivery_order', fetchAll);
+  socket.on('delivery_status_changed', fetchAll);
+  return () => {
+    socket.off('delivery_updated', fetchAll);
+    socket.off('new_delivery_order', fetchAll);
+    socket.off('delivery_status_changed', fetchAll);
+  };
+}, [socketReady]);
 
   const [form, setForm] = useState({
     customer_name: '', customer_phone: '', delivery_address: '', notes: '', driver_id: ''

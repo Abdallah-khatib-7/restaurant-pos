@@ -53,7 +53,8 @@ const roleConfig = {
   owner: { color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', label: 'Owner' },
   waiter: { color: '#a78bfa', bg: 'rgba(167,139,250,0.15)', label: 'Waiter' },
   kitchen: { color: '#fb923c', bg: 'rgba(251,146,60,0.15)', label: 'Kitchen' },
-  delivery: { color: '#22c55e', bg: 'rgba(34,197,94,0.15)', label: 'Delivery' },
+  delivery_operator: { color: '#22c55e', bg: 'rgba(34,197,94,0.15)', label: 'Delivery Operator' },
+  delivery: { color: '#38bdf8', bg: 'rgba(56,189,248,0.15)', label: 'Driver' },
 };
 
 const Input = ({ label, ...props }) => (
@@ -257,7 +258,7 @@ if (form.role === 'delivery') {
 
         {/* Role filter */}
         <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          {['all', 'owner', 'waiter', 'kitchen', 'delivery'].map(role => (
+          {['all', 'owner', 'waiter', 'kitchen', 'delivery_operator', 'delivery'].map(role => (
             <button key={role} onClick={() => setActiveRole(role)} style={{
               padding: '8px 16px', borderRadius: '20px', cursor: 'pointer',
               background: activeRole === role ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'rgba(41,37,36,0.8)',

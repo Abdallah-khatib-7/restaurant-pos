@@ -8,8 +8,9 @@ import Dashboard from './pages/Dashboard';
 import MenuManagement from './pages/MenuManagement';
 import TablesManagement from './pages/TablesManagement.jsx';
 import Orders from './pages/Orders.jsx';
-import Staff from './pages/Staff.jsx';
+import Staff from './pages/Staff.jsx';  
 import Delivery from './pages/Delivery.jsx';
+import Reports from './pages/Reports.jsx';
 
 
 // Role-based route guard
@@ -34,12 +35,12 @@ const RoleRedirect = () => {
   if (!user) return <Navigate to="/login" replace />;
 
   const routes = {
-    superadmin: '/superadmin',
-    owner: '/dashboard',
-    waiter: '/waiter',
-    kitchen: '/kitchen',
-    delivery: '/delivery',
-  };
+  superadmin: '/superadmin',
+  owner: '/dashboard',
+  waiter: '/waiter',
+  kitchen: '/kitchen',
+  delivery_operator: '/delivery',
+};
 
   return <Navigate to={routes[user.role] || '/login'} replace />;
 };
@@ -61,7 +62,8 @@ export default function App() {
       <Route path="/tables" element={<ProtectedRoute roles={['owner']}><TablesManagement /></ProtectedRoute>} />
       <Route path="/orders" element={<ProtectedRoute roles={['owner']}><Orders /></ProtectedRoute>} />
       <Route path="/staff" element={<ProtectedRoute roles={['owner']}><Staff /></ProtectedRoute>} />
-      <Route path="/delivery" element={<ProtectedRoute roles={['owner']}><Delivery /></ProtectedRoute>} />
+      <Route path="/delivery" element={<ProtectedRoute roles={['owner', 'delivery_operator']}><Delivery /></ProtectedRoute>} />
+      <Route path="/reports" element={<ProtectedRoute roles={['owner']}><Reports /></ProtectedRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

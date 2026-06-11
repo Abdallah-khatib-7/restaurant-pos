@@ -19,7 +19,7 @@ export default function Login() {
     owner: '/dashboard',
     waiter: '/waiter',
     kitchen: '/kitchen',
-    delivery: '/delivery',
+    delivery_operator: '/delivery',
   };
 
   const handleLogin = async (e) => {

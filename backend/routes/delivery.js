@@ -145,7 +145,11 @@ router.put('/:id/assign', auth, async (req, res, next) => {
       'UPDATE users SET delivery_status = "on_road", active_deliveries = active_deliveries + 1 WHERE id = ?',
       [driver_id]
     );
-
+       const io = getIo(req);
+io.to(`kitchen_${req.user.restaurant_id}`).emit('delivery_updated', {
+  id: parseInt(req.params.id),
+  driver_id: parseInt(driver_id)
+});
     res.json({ message: 'Driver assigned' });
   } catch (err) { next(err); }
 });

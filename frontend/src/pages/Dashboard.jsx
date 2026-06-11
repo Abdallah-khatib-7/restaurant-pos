@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   UtensilsCrossed,  ShoppingBag,
   Users, Truck, TrendingUp, LogOut,
-  ChefHat, Menu, Table2
+  ChefHat, Menu, Table2, BarChart2
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis,
@@ -22,6 +22,7 @@ const NAV = [
   { label: 'Menu', path: '/menu', icon: Menu },
   { label: 'Delivery', path: '/delivery', icon: Truck },
   { label: 'Staff', path: '/staff', icon: Users },
+  { label: 'Reports', path: '/reports', icon: BarChart2 },
 ];
 
 // ── Animated counter ──────────────────────────────────────────────────────────
@@ -57,23 +58,28 @@ function Counter({ value, prefix = '', suffix = '', decimals = 0 }) {
 function FloatingNav() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  const getNav = () => {
+    if (user?.role === 'delivery_operator') {
+      return [{ label: 'Delivery', path: '/delivery', icon: Truck }];
+    }
+    return NAV;
+  };
 
   return (
     <motion.div
+      initial={{ y: -80, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
       style={{
-  position: 'relative', top: '20px',
-  left: 0, right: 0, margin: '0 auto',
-  width: 'fit-content',
-  zIndex: 10,
-  display: 'flex', alignItems: 'center', gap: '4px',
-  background: 'rgba(41,37,36,0.92)',
-  backdropFilter: 'blur(20px)',
-  border: '1px solid rgba(245,158,11,0.2)',
-  borderRadius: '50px', padding: '6px 8px',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(245,158,11,0.05)'
-}}>
-      {/* Logo pill */}
+        position: 'relative', width: 'fit-content', margin: '0 auto',
+        zIndex: 10, display: 'flex', alignItems: 'center', gap: '4px',
+        background: 'rgba(41,37,36,0.92)', backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(245,158,11,0.2)', borderRadius: '50px',
+        padding: '6px 8px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(245,158,11,0.05)'
+      }}>
       <div style={{
         width: '32px', height: '32px', borderRadius: '50%',
         background: 'linear-gradient(135deg,#f59e0b,#d97706)',
@@ -83,41 +89,40 @@ function FloatingNav() {
         <UtensilsCrossed size={16} color="#1c1917" />
       </div>
 
-      {NAV.map(item => {
+      {getNav().map(item => {
         const active = location.pathname === item.path;
         const Icon = item.icon;
         return (
           <motion.button
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: active ? '7px 14px' : '7px 10px',
-              borderRadius: '50px', border: 'none',
-              background: active ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'transparent',
-              color: active ? '#1c1917' : '#a8a29e',
-              cursor: 'pointer', fontSize: '13px',
-              fontWeight: active ? '600' : '400',
-              fontFamily: 'Inter, sans-serif',
-              transition: 'all 0.2s', whiteSpace: 'nowrap'
-            }}>
-            <Icon size={15} />
-            {active && <span>{item.label}</span>}
-          </motion.button>
+  key={item.path}
+  onClick={() => navigate(item.path)}
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.95 }}
+  title={item.label}
+  style={{
+    display: 'flex', alignItems: 'center', gap: '6px',
+    padding: active ? '7px 14px' : '7px 10px',
+    borderRadius: '50px', border: 'none',
+    background: active ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'transparent',
+    color: active ? '#1c1917' : '#a8a29e',
+    cursor: 'pointer', fontSize: '13px',
+    fontWeight: active ? '600' : '400',
+    fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
+    position: 'relative'
+  }}>
+  <Icon size={15} />
+  {active && <span>{item.label}</span>}
+</motion.button>
         );
       })}
 
-      {/* Logout */}
-      <motion.button
-        onClick={() => { logout(); navigate('/login'); }}
+      <motion.button onClick={() => { logout(); navigate('/login'); }}
         whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
         style={{
           display: 'flex', alignItems: 'center', gap: '6px',
           padding: '7px 12px', borderRadius: '50px', border: 'none',
-          background: 'rgba(244,63,94,0.1)',
-          color: '#f43f5e', cursor: 'pointer', fontSize: '13px',
+          background: 'rgba(244,63,94,0.1)', color: '#f43f5e',
+          cursor: 'pointer', fontSize: '13px',
           fontFamily: 'Inter, sans-serif', marginLeft: '4px'
         }}>
         <LogOut size={15} />

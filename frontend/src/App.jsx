@@ -13,6 +13,7 @@ import Delivery from './pages/Delivery.jsx';
 import Reports from './pages/Reports.jsx';
 import WaiterView from './pages/WaiterView.jsx';
 import KitchenDisplay from './pages/KitchenDisplay.jsx';
+import Register from './pages/Register.jsx';
 
 
 // Role-based route guard
@@ -53,7 +54,8 @@ export default function App() {
       {/* Public */}
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
-
+      <Route path="/register" element={<Register />} />
+      
       {/* Role redirect */}
       <Route path="/home" element={<RoleRedirect />} />
 
@@ -68,6 +70,7 @@ export default function App() {
       <Route path="/reports" element={<ProtectedRoute roles={['owner']}><Reports /></ProtectedRoute>} />
       <Route path="/waiter" element={<ProtectedRoute roles={['waiter']}><WaiterView /></ProtectedRoute>} />
       <Route path="/kitchen" element={<ProtectedRoute roles={['kitchen']}><KitchenDisplay /></ProtectedRoute>} />
+      
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

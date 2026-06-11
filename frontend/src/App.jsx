@@ -9,6 +9,7 @@ import MenuManagement from './pages/MenuManagement';
 import TablesManagement from './pages/TablesManagement.jsx';
 import Orders from './pages/Orders.jsx';
 import Staff from './pages/Staff.jsx';
+import Delivery from './pages/Delivery.jsx';
 
 
 // Role-based route guard
@@ -60,6 +61,7 @@ export default function App() {
       <Route path="/tables" element={<ProtectedRoute roles={['owner']}><TablesManagement /></ProtectedRoute>} />
       <Route path="/orders" element={<ProtectedRoute roles={['owner']}><Orders /></ProtectedRoute>} />
       <Route path="/staff" element={<ProtectedRoute roles={['owner']}><Staff /></ProtectedRoute>} />
+      <Route path="/delivery" element={<ProtectedRoute roles={['owner']}><Delivery /></ProtectedRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

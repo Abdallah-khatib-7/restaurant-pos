@@ -587,7 +587,7 @@ Each incognito window has its own isolated `localStorage`, ensuring separate JWT
 
 ## 👨‍💻 About the Developer
 
-Built by **Abdallah Khatib** — a Computer Science graduate from Lebanese International University with 5+ years of real pharmacy experience. Tawla is his second major full-stack system, following [PharmaCare](https://github.com/Abdallah-khatib-7/pharmacy-system) — a professional pharmacy management system.
+Built by **Abdallah Khatib** — a Computer Science graduate from Lebanese International University with 5+ years of real pharmacy experience. Tawla is my second major full-stack system, following [PharmaCare](https://github.com/Abdallah-khatib-7/pharmacy-system) — a professional pharmacy management system.
 
 - 💼 [LinkedIn](https://linkedin.com/in/abdallah-khatib)
 - 🐙 [GitHub](https://github.com/Abdallah-khatib-7)
@@ -597,4 +597,4 @@ Built by **Abdallah Khatib** — a Computer Science graduate from Lebanese Inter
 
 ## 📄 License
 
-This project is for portfolio and demonstration purposes. All rights reserved © 2024 Abdallah Khatib.
+This project is for portfolio and demonstration purposes. All rights reserved © 2026 Abdallah Khatib.

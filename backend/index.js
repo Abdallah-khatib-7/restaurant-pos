@@ -9,6 +9,7 @@ const { apiLimiter, loginLimiter, applicationLimiter } = require('./middleware/r
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {

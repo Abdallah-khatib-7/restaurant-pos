@@ -50,7 +50,6 @@ router.post('/', auth, async (req, res, next) => {
   const restaurant_id = req.user.restaurant_id;
 
   try {
-    // Validate driver availability
     if (driver_id) {
       const [drivers] = await db.query(
         'SELECT * FROM users WHERE id = ? AND role = ? AND restaurant_id = ?',
@@ -87,15 +86,13 @@ router.post('/', auth, async (req, res, next) => {
       );
     }
 
-    // Update driver status if assigned
     if (driver_id) {
       await db.query(
-        'UPDATE users SET delivery_status = "on_road", active_deliveries = active_deliveries + 1 WHERE id = ?',
-        [driver_id]
+        'UPDATE users SET delivery_status = ?, active_deliveries = active_deliveries + 1 WHERE id = ?',
+        ['on_road', driver_id]
       );
     }
 
-    // Emit to kitchen
     const io = getIo(req);
     io.to(`kitchen_${restaurant_id}`).emit('new_delivery_order', {
       id: delivery_order_id, customer_name, delivery_address, total, type: 'delivery'
@@ -113,7 +110,6 @@ router.put('/:id/assign', auth, async (req, res, next) => {
 
   const { driver_id } = req.body;
   try {
-    // Check driver capacity
     const [drivers] = await db.query(
       'SELECT * FROM users WHERE id = ? AND role = ? AND restaurant_id = ?',
       [driver_id, 'delivery', req.user.restaurant_id]
@@ -121,17 +117,15 @@ router.put('/:id/assign', auth, async (req, res, next) => {
     if (drivers.length === 0) return res.status(400).json({ message: 'Driver not found' });
     if (drivers[0].active_deliveries >= 4) return res.status(400).json({ message: `${drivers[0].name} already has 4 active deliveries` });
 
-    // Get current driver to decrement their count
     const [order] = await db.query('SELECT driver_id FROM delivery_orders WHERE id = ?', [req.params.id]);
     if (order[0].driver_id) {
       await db.query(
         'UPDATE users SET active_deliveries = GREATEST(active_deliveries - 1, 0) WHERE id = ?',
         [order[0].driver_id]
       );
-      // Check if old driver now has 0 active deliveries
       const [oldDriver] = await db.query('SELECT active_deliveries FROM users WHERE id = ?', [order[0].driver_id]);
       if (oldDriver[0].active_deliveries === 0) {
-        await db.query('UPDATE users SET delivery_status = "available" WHERE id = ?', [order[0].driver_id]);
+        await db.query('UPDATE users SET delivery_status = ? WHERE id = ?', ['available', order[0].driver_id]);
       }
     }
 
@@ -140,16 +134,17 @@ router.put('/:id/assign', auth, async (req, res, next) => {
       [driver_id, req.params.id, req.user.restaurant_id]
     );
 
-    // Update new driver
     await db.query(
-      'UPDATE users SET delivery_status = "on_road", active_deliveries = active_deliveries + 1 WHERE id = ?',
-      [driver_id]
+      'UPDATE users SET delivery_status = ?, active_deliveries = active_deliveries + 1 WHERE id = ?',
+      ['on_road', driver_id]
     );
-       const io = getIo(req);
-io.to(`kitchen_${req.user.restaurant_id}`).emit('delivery_updated', {
-  id: parseInt(req.params.id),
-  driver_id: parseInt(driver_id)
-});
+
+    const io = getIo(req);
+    io.to(`kitchen_${req.user.restaurant_id}`).emit('delivery_updated', {
+      id: parseInt(req.params.id),
+      driver_id: parseInt(driver_id)
+    });
+
     res.json({ message: 'Driver assigned' });
   } catch (err) { next(err); }
 });
@@ -167,7 +162,6 @@ router.put('/:id/status', auth, async (req, res, next) => {
       [status, req.params.id, req.user.restaurant_id]
     );
 
-    // If delivered or cancelled, decrement driver active count
     if (status === 'delivered' || status === 'cancelled') {
       const [orders] = await db.query('SELECT driver_id FROM delivery_orders WHERE id = ?', [req.params.id]);
       if (orders[0].driver_id) {
@@ -177,7 +171,7 @@ router.put('/:id/status', auth, async (req, res, next) => {
         );
         const [driver] = await db.query('SELECT active_deliveries FROM users WHERE id = ?', [orders[0].driver_id]);
         if (driver[0].active_deliveries === 0) {
-          await db.query('UPDATE users SET delivery_status = "available" WHERE id = ?', [orders[0].driver_id]);
+          await db.query('UPDATE users SET delivery_status = ? WHERE id = ?', ['available', orders[0].driver_id]);
         }
       }
     }

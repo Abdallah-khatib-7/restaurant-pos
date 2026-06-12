@@ -99,28 +99,36 @@ const Receipt = ({ order, tip, restaurantName, waiterName, onClose }) => {
 
 // ── Split Bill Modal ──────────────────────────────────────────────────────────
 const SplitBillModal = ({ order, onClose }) => {
-  const [mode, setMode] = useState('equal'); // 'equal' | 'byItem'
+  const [mode, setMode] = useState('equal');
   const [people, setPeople] = useState(2);
   const [assignments, setAssignments] = useState({});
   const total = parseFloat(order.final_total || order.total);
 
-  const assignItem = (itemId, person) => {
-    setAssignments(prev => ({ ...prev, [itemId]: person }));
+  // Expand items by quantity — 2x Hummus becomes 2 separate units
+  const expandedItems = order.items?.flatMap(item =>
+    Array.from({ length: item.quantity }, (_, idx) => ({
+      ...item,
+      splitId: `${item.id}-${idx}`,
+      displayName: item.quantity > 1 ? `${item.item_name} #${idx + 1}` : item.item_name,
+      unitPrice: parseFloat(item.price),
+      quantity: 1
+    }))
+  ) || [];
+
+  const assignItem = (splitId, person) => {
+    setAssignments(prev => ({ ...prev, [splitId]: person }));
   };
 
   const getPersonTotal = (person) => {
-    return order.items?.filter(i => assignments[i.id] === person)
-      .reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0) || 0;
+    return expandedItems
+      .filter(i => assignments[i.splitId] === person)
+      .reduce((s, i) => s + i.unitPrice, 0);
   };
 
- 
-
-  const assignedTotal = mode === 'byItem'
-    ? Object.keys(assignments).reduce((s, id) => {
-      const item = order.items?.find(i => i.id === parseInt(id));
-      return s + (item ? parseFloat(item.price) * item.quantity : 0);
-    }, 0)
-    : total;
+  const assignedTotal = Object.keys(assignments).reduce((s, splitId) => {
+    const item = expandedItems.find(i => i.splitId === splitId);
+    return s + (item ? item.unitPrice : 0);
+  }, 0);
 
   return (
     <div onClick={onClose} style={{
@@ -200,23 +208,23 @@ const SplitBillModal = ({ order, onClose }) => {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '300px', overflowY: 'auto' }}>
-              {order.items?.map(item => (
-                <div key={item.id} style={{
+              {expandedItems.map(item => (
+                <div key={item.splitId} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '10px 12px', background: 'rgba(28,25,23,0.6)', borderRadius: '10px'
                 }}>
                   <div>
-                    <p style={{ fontSize: '13px', color: '#fef3c7', margin: '0 0 2px' }}>{item.quantity}x {item.item_name}</p>
+                    <p style={{ fontSize: '13px', color: '#fef3c7', margin: '0 0 2px' }}>{item.displayName}</p>
                     <p style={{ fontSize: '12px', color: '#f59e0b', margin: 0, fontFamily: 'JetBrains Mono,monospace' }}>
-                      ${(parseFloat(item.price) * item.quantity).toFixed(2)}
+                      ${item.unitPrice.toFixed(2)}
                     </p>
                   </div>
                   <div style={{ display: 'flex', gap: '4px' }}>
                     {Array.from({ length: people }).map((_, i) => (
-                      <button key={i} onClick={() => assignItem(item.id, i + 1)} style={{
+                      <button key={i} onClick={() => assignItem(item.splitId, i + 1)} style={{
                         width: '28px', height: '28px', borderRadius: '50%', border: 'none', cursor: 'pointer',
-                        background: assignments[item.id] === i + 1 ? `hsl(${i * 60}, 70%, 40%)` : 'rgba(68,64,60,0.5)',
-                        color: assignments[item.id] === i + 1 ? '#fff' : '#a8a29e',
+                        background: assignments[item.splitId] === i + 1 ? `hsl(${i * 60}, 70%, 40%)` : 'rgba(68,64,60,0.5)',
+                        color: assignments[item.splitId] === i + 1 ? '#fff' : '#a8a29e',
                         fontSize: '12px', fontWeight: '600'
                       }}>{i + 1}</button>
                     ))}
@@ -254,15 +262,19 @@ const AISuggestionsModal = ({ currentOrder, onAdd, onClose }) => {
   const [selected, setSelected] = useState([]);
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const res = await api.post('/ai/suggest', { current_order: currentOrder });
-        setSuggestions(res.data.suggestions);
-      } catch { toast.error('AI unavailable'); onClose(); }
-      finally { setLoading(false); }
-    };
-    fetch();
-  }, []);
+  const fetch = async () => {
+    try {
+      const res = await api.post('/ai/suggest', { current_order: currentOrder });
+      // Filter out suggestions that aren't in the current order's restaurant menu
+      const validSuggestions = res.data.suggestions.filter(s => 
+        !currentOrder.find(o => o.menu_item_id === s.menu_item_id)
+      );
+      setSuggestions(validSuggestions);
+    } catch { toast.error('AI unavailable'); onClose(); }
+    finally { setLoading(false); }
+  };
+  fetch();
+}, []);
 
   const toggle = (s) => {
     setSelected(prev => prev.find(p => p.menu_item_id === s.menu_item_id)

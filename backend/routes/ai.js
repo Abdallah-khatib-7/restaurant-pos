@@ -6,12 +6,11 @@ const OpenAI = require('openai');
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-router.post('/suggest', auth, async (req, res) => {
+router.post('/suggest', auth, async (req, res, next) => {
   const { current_order } = req.body;
   const restaurant_id = req.user.restaurant_id;
 
   try {
-    // Fetch this restaurant's menu only
     const [menu] = await db.query(`
       SELECT m.id, m.name, m.description, m.price, c.name as category
       FROM menu_items m
@@ -41,6 +40,7 @@ ${menuText}
 RULES:
 - Suggest exactly 3 items that complement the current order
 - Do NOT suggest items already in the order
+- You MUST only suggest items that exist in the FULL MENU above with their exact IDs
 - Think about food pairings, missing drink, missing dessert, or popular combos
 - If order total is between $50-$59, prioritize suggesting items that would bring total to $60 for free delivery
 - Keep reasons short (max 8 words)
@@ -61,7 +61,11 @@ RULES:
     const text = response.choices[0].message.content.trim();
     const suggestions = JSON.parse(text);
 
-    res.json({ suggestions });
+    // Validate — only return suggestions that are real menu items from this restaurant
+    const validIds = menu.map(m => m.id);
+    const validSuggestions = suggestions.filter(s => validIds.includes(s.menu_item_id));
+
+    res.json({ suggestions: validSuggestions });
   } catch (err) {
     console.error(err);
     next(err);

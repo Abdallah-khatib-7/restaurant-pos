@@ -535,7 +535,7 @@ if (form.role === 'delivery') {
               <div style={{ marginBottom: '14px' }}>
                 <label style={{ display: 'block', fontSize: '12px', color: '#a8a29e', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Role</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '8px' }}>
-                  {['waiter', 'kitchen', 'delivery', 'owner'].map(role => {
+                  {['waiter', 'kitchen', 'delivery_operator', 'delivery', 'owner'].map(role => {
                     const cfg = roleConfig[role];
                     return (
                       <button key={role} onClick={() => setForm({ ...form, role })} style={{
